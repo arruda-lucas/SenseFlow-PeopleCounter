@@ -1,0 +1,15 @@
+[project]
+name = "sense_flow"
+version = "0.1.0"
+description = "Contagem de Pessoas usando IA"
+authors = [{ name = "Lucas Arruda", email = "lucaskugtt@gmail.com" }]
+dependencies = [
+    "torch",
+    "opencv-python",
+    "ultralytics",
+    "deep-sort-realtime"
+]
+
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"

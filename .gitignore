@@ -1,1 +1,9 @@
 videos_teste/
+env-senseflow/
+__pycache__/
+sense_flow.egg-info/
+data/
+tests/
+yolov5mu.pt
+teste.py
+descobrir_coords.py

@@ -1,30 +1,33 @@
-from models.yolo_model import Yolov5m
-from video_process.video_stream import VideoProcess
-from deep_sort_realtime.deepsort_tracker import DeepSort
-from utils.utils import convert_detections, annotate, produto_vetorial
 import cv2
-import json
 
-with open("config/config.json", "r") as file:
-    config = json.load(file)
-assert config["url"] is not None, "URL não pode ser nulo."
+from src.utils.utils import convert_detections, annotate, produto_vetorial
 
-camera = VideoProcess(config["url"])
-model = Yolov5m()
-tracker = DeepSort(max_age=30)
-
-frame_width, frame_height = camera.get_shape()
-line_start = (0, frame_height // 2)
-line_end = (frame_width, frame_height // 2)
+line_start = (1030, 252)
+line_end = (764, 464)
 
 count_in = 0
 count_out = 0
-track_history = {}
 
-while True:
-    frame = camera.get_frame()
+track_history = {}  #pensar em uma forma melhor de armazenar os ids e os pontos
+#perigoso acumular MUITO
 
-    results = model.detect(frame)
+cap = cv2.VideoCapture(video_path)
+
+frame_width = int(cap.get(3))
+frame_height = int(cap.get(4))
+
+# save_name = video_path.split(os.path.sep)[-1].split('.')[0]
+
+while cap.isOpened():
+    ret, frame = cap.read()
+
+    # if ret:
+    # resized_frame = cv2.resize(frame, (args.imgsz, args.imgsz)) if args.imgsz is not None else frame
+
+    if not ret:
+        break
+
+    results = model(frame, classes=[0], verbose=False, conf=0.3)[0]
 
     detections = convert_detections(results)
 
@@ -67,6 +70,10 @@ while True:
 
         frame = annotate(tracks, frame, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)])
 
+        # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        # cv2.putText(frame, f"ID {track_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # cv2.circle(frame, (center_x, center_y), 4, (0, 0, 255), -1)
+
     cv2.line(frame, (line_start), (line_end), (255, 0, 0), 2)
 
     cv2.putText(
@@ -88,10 +95,8 @@ while True:
         2,
     )
 
-    cv2.imshow("Detected", frame)
+    out.write(frame)
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
-
-camera.release()
+cap.release()
+out.release()
 cv2.destroyAllWindows()
