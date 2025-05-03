@@ -21,9 +21,7 @@ def main():
 
     try:
         while True:
-            ret, frame = camera.get_frame()
-            if not ret:
-                break
+            frame = camera.get_frame()
 
             # Processamento de objetos
             detections = convert_detections(model.detect(frame))
