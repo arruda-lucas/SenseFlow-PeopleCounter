@@ -13,23 +13,33 @@ class PolylineConfig:
         ]
 
 class PolylineCounter:
-    def __init__(self, segments: List[Tuple[Tuple[int, int], Tuple[int, int]]]):
+    def __init__(self, segments: List[Tuple[Tuple[int, int], Tuple[int, int]]], right=True):
         """
         Args:
             segments: Lista de tuplas representando segmentos da poligonal [(start, end), ...]
         """
         self.segments = segments
         self.track_history = {}
-        self._precompute_normals()
+        self._precompute_normals(right)
 
     def _precompute_normals(self):
         """Calcula vetores normais consistentes para todos os segmentos."""
         self.normals = []
         for (start, end) in self.segments:
             dx, dy = end[0] - start[0], end[1] - start[1]
-            # Vetor normal unitário apontando para o "interior"
             length = np.sqrt(dx**2 + dy**2)
-            self.normals.append((-dy/length, dx/length))  # Normalizado
+            self.normals.append((-dy/length, dx/length))
+
+    def _precompute_normals(self, right=True):
+        self.normals = []
+        for (start, end) in self.segments:
+            dx, dy = end[0] - start[0], end[1] - start[1]
+            length = np.sqrt(dx**2 + dy**2)
+            if right:
+                normal = (-dy/length, dx/length)  # Interior à direita
+            else:
+                normal = (dy/length, -dx/length)  # Interior à esquerda
+            self.normals.append(normal)
 
     def check_crossing(self, track_id: int, current_pos: Tuple[int, int]) -> Optional[str]:
         """

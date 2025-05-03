@@ -1,7 +1,6 @@
 import cv2
 
-def draw_ui(frame, counter, line):
-    cv2.line(frame, line.start, line.end, (0, 255, 255), 2)
+def draw_ui(frame, counter):
     cv2.putText(frame, f"Entradas: {counter.count_in}", (10, 30), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
     cv2.putText(frame, f"Saídas: {counter.count_out}", (10, 60), 

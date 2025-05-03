@@ -16,7 +16,7 @@ def main():
     camera = VideoProcess(config["local"])
     model = Yolov5m()
     tracker = DeepSort(max_age=30)
-    polyline_counter = PolylineCounter(polyline_segments)
+    polyline_counter = PolylineCounter(polyline_segments, right=False)
     people_counter = PeopleCounter()
 
     try:
