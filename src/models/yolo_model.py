@@ -7,7 +7,7 @@ print(f"Usando dispositivo: {device}")
 
 
 class Yolov5m:
-    def __init__(self, model_path="models/yolov5mu.pt"):
+    def __init__(self, model_path="src/models/yolov5mu.pt"):
         self.model = YOLO(model_path).to(device)
         self.model.eval()
 
