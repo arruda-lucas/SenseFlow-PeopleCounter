@@ -17,7 +17,7 @@ def run_fastapi():
     """Executa o servidor FastAPI"""
     from src.site.backend.app import app
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("src.site.backend.app:app", host="0.0.0.0", port=8000)
 
 def run_main():
     """Executa o main.py de visão computacional"""
