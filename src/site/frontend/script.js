@@ -1,14 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    async function updateCurrentCount() {
-        try {
-            const response = await fetch('/current_count');
-            const data = await response.json();
-            document.getElementById('currentCount').textContent = data.count;
-        } catch (error) {
-            console.error('Erro ao atualizar contagem:', error);
-        }
-    }
-
+    // Configuração comum para os gráficos
     const chartConfig = {
         responsive: true,
         maintainAspectRatio: false,
@@ -19,108 +10,182 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // 1. Fluxo por Hora
+    // Elementos do DOM
+    const currentCountElement = document.getElementById('currentCount');
     const todayCtx = document.getElementById('todayChart').getContext('2d');
-    const todayData = await (await fetch('/today_hourly')).json();
-    const todayLabels = todayData.map(item => `${item[0]}:00`);
-    const todayValues = todayData.map(item => item[1]);
-
-    new Chart(todayCtx, {
-        type: 'bar',
-        data: {
-            labels: todayLabels,
-            datasets: [{
-                label: 'Fluxo por Hora',
-                data: todayValues,
-                backgroundColor: todayValues.map(value => value >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)'),
-                borderColor: todayValues.map(value => value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)'),
-                borderWidth: 1
-            }]
-        },
-        options: chartConfig
-    });
-
-    // 2. Última Hora (Entradas e Saídas) - Versão Atualizada
     const lastHourCtx = document.getElementById('lastHourChart').getContext('2d');
-    const lastHourData = await (await fetch('/last_hour')).json();
+    const smoothCtx = document.getElementById('smoothChart').getContext('2d');
 
-    // Extrai os dados
-    const lastHourLabels = lastHourData.map(item => item[0]);
-    const entriesData = lastHourData.map(item => item[1]);
-    const exitsData = lastHourData.map(item => item[2]);
+    // Variáveis para os gráficos
+    let todayChart, lastHourChart, smoothChart;
 
-    new Chart(lastHourCtx, {
-        type: 'line',
-        data: {
-            labels: lastHourLabels,
-            datasets: [
-                {
-                    label: 'Entradas',
-                    data: entriesData,
-                    borderColor: 'rgba(46, 204, 113, 1)',
-                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,  // Linha suave
-                    fill: true,
-                    pointRadius: 0  // Remove os pontos para ficar mais limpo
-                },
-                {
-                    label: 'Saídas',
-                    data: exitsData,
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,  // Linha suave
-                    fill: true,
-                    pointRadius: 0  // Remove os pontos para ficar mais limpo
-                }
-            ]
-        },
-        options: {
-            ...chartConfig,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Quantidade de Pessoas'
+    // Conexão SSE para atualizações em tempo real
+    const eventSource = new EventSource('/updates');
+    
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        // Atualiza a contagem atual
+        currentCountElement.textContent = data.current_count;
+        
+        // Atualiza os gráficos se necessário
+        if (data.charts_updated) {
+            updateCharts();
+        }
+    };
+
+    eventSource.onerror = () => {
+        console.error('Erro na conexão SSE. Tentando reconectar...');
+        setTimeout(() => {
+            new EventSource('/updates');
+        }, 5000);
+    };
+
+    // Função para atualizar todos os gráficos
+    async function updateCharts() {
+        try {
+            const [todayData, lastHourData] = await Promise.all([
+                fetch('/today_hourly').then(res => res.json()),
+                fetch('/last_hour').then(res => res.json())
+            ]);
+
+            // Atualiza o gráfico de fluxo por hora
+            if (todayChart) {
+                todayChart.data.labels = todayData.map(item => `${item[0]}:00`);
+                todayChart.data.datasets[0].data = todayData.map(item => item[1]);
+                todayChart.data.datasets[0].backgroundColor = todayData.map(item => 
+                    item[1] >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)');
+                todayChart.data.datasets[0].borderColor = todayData.map(item => 
+                    item[1] >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)');
+                todayChart.update();
+            } else {
+                createTodayChart(todayData);
+            }
+
+            // Atualiza o gráfico da última hora
+            if (lastHourChart) {
+                lastHourChart.data.labels = lastHourData.map(item => item[0]);
+                lastHourChart.data.datasets[0].data = lastHourData.map(item => item[1]);
+                lastHourChart.data.datasets[1].data = lastHourData.map(item => item[2]);
+                lastHourChart.update();
+            } else {
+                createLastHourChart(lastHourData);
+            }
+
+            // Atualiza o gráfico de variação cumulativa
+            if (smoothChart) {
+                let runningTotal = 0;
+                const cumulativeData = todayData.map(item => {
+                    runningTotal += item[1];
+                    return Math.max(0, runningTotal);
+                });
+                
+                smoothChart.data.labels = todayData.map(item => `${item[0]}:00`);
+                smoothChart.data.datasets[0].data = cumulativeData;
+                smoothChart.update();
+            } else {
+                createSmoothChart(todayData);
+            }
+
+        } catch (error) {
+            console.error('Erro ao atualizar gráficos:', error);
+        }
+    }
+
+    // Funções para criar os gráficos inicialmente
+    function createTodayChart(todayData) {
+        todayChart = new Chart(todayCtx, {
+            type: 'bar',
+            data: {
+                labels: todayData.map(item => `${item[0]}:00`),
+                datasets: [{
+                    label: 'Fluxo por Hora',
+                    data: todayData.map(item => item[1]),
+                    backgroundColor: todayData.map(item => 
+                        item[1] >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)'),
+                    borderColor: todayData.map(item => 
+                        item[1] >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)'),
+                    borderWidth: 1
+                }]
+            },
+            options: chartConfig
+        });
+    }
+
+    function createLastHourChart(lastHourData) {
+        lastHourChart = new Chart(lastHourCtx, {
+            type: 'line',
+            data: {
+                labels: lastHourData.map(item => item[0]),
+                datasets: [
+                    {
+                        label: 'Entradas',
+                        data: lastHourData.map(item => item[1]),
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Saídas',
+                        data: lastHourData.map(item => item[2]),
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
                     }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Horário'
+                ]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Quantidade de Pessoas'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Horário'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
 
-    // 3. Variação do Dia (Cumulativo)
-    const smoothCtx = document.getElementById('smoothChart').getContext('2d');
-    let runningTotal = 0;
-    const cumulativeData = todayData.map(item => {
-        runningTotal += item[1];
-        return Math.max(0, runningTotal);
-    });
+    function createSmoothChart(todayData) {
+        let runningTotal = 0;
+        const cumulativeData = todayData.map(item => {
+            runningTotal += item[1];
+            return Math.max(0, runningTotal);
+        });
 
-    new Chart(smoothCtx, {
-        type: 'line',
-        data: {
-            labels: todayLabels,
-            datasets: [{
-                label: 'Variação do Dia',
-                data: cumulativeData,
-                borderColor: 'rgba(155, 89, 182, 1)',
-                backgroundColor: 'rgba(155, 89, 182, 0.1)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: chartConfig
-    });
+        smoothChart = new Chart(smoothCtx, {
+            type: 'line',
+            data: {
+                labels: todayData.map(item => `${item[0]}:00`),
+                datasets: [{
+                    label: 'Variação do Dia',
+                    data: cumulativeData,
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: chartConfig
+        });
+    }
 
-    setInterval(updateCurrentCount, 3000);
-    updateCurrentCount();
+    // Carrega os dados iniciais
+    updateCharts();
 });

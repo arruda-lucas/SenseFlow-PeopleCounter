@@ -1,5 +1,5 @@
 from typing import Tuple, List, Optional
-from src.utils.buffer_manager import buffer_manager
+from utils.buffer_manager import buffer_manager
 import numpy as np
 
 DIRECTION_IN = "in"
