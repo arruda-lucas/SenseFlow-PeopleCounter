@@ -1,4 +1,5 @@
 from typing import Tuple, List, Optional
+from src.utils.buffer_manager import buffer_manager
 import numpy as np
 
 DIRECTION_IN = "in"
@@ -96,4 +97,7 @@ class PeopleCounter:
             self.count_in += 1
         else:
             self.count_out += 1
+        
+        buffer_manager.add_event(direction)
+        
         print(f"Movimento: {direction.upper()} | Entradas: {self.count_in} | Saídas: {self.count_out}")

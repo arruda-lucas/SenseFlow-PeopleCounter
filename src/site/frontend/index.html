@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sense Flow - Lucas Arruda</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Sense Flow</h1>
+            <p class="subtitle">Monitoramento de fluxo de pessoas</p>
+            <div class="current-count">
+                <div class="count-number" id="currentCount">0</div>
+                <div class="count-label">Pessoas no local agora</div>
+            </div>
+            <p class="author">Desenvolvido por Lucas Arruda</p>
+        </header>
+
+        <div class="grid-container">
+            <div class="chart-container">
+                <h2>Fluxo por Hora</h2>
+                <canvas id="todayChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>Última Hora</h2>
+                <canvas id="lastHourChart"></canvas>
+            </div>
+            
+            <div class="chart-container full-width">
+                <h2>Variação do Dia</h2>
+                <canvas id="smoothChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

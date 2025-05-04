@@ -1,0 +1,9 @@
+torch
+opencv-python
+ultralytics
+deep-sort-realtime
+firebase-admin
+gspread
+oauth2client
+uvicorn
+fastapi
