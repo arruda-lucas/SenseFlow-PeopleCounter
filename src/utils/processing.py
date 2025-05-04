@@ -1,6 +1,7 @@
 from typing import Tuple, List, Optional
 from utils.buffer_manager import buffer_manager
 import numpy as np
+import time
 
 DIRECTION_IN = "in"
 DIRECTION_OUT = "out"
@@ -14,13 +15,15 @@ class PolylineConfig:
         ]
 
 class PolylineCounter:
-    def __init__(self, segments: List[Tuple[Tuple[int, int], Tuple[int, int]]], right=True):
+    def __init__(self, segments: List[Tuple[Tuple[int, int], Tuple[int, int]]], right=True, cooldown_seconds=1.0):
         """
         Args:
             segments: Lista de tuplas representando segmentos da poligonal [(start, end), ...]
         """
         self.segments = segments
         self.track_history = {}
+        self.last_count_time = {}
+        self.cooldown_seconds = cooldown_seconds
         self._precompute_normals(right)
 
     def _precompute_normals(self):
@@ -53,33 +56,31 @@ class PolylineCounter:
         Returns:
             "in" se entrou, "out" se saiu, None caso contrário
         """
-        # Se o track_id não está no histórico, inicializa e retorna None
+        now = time.time()
+        # Se está em cooldown, não conta
+        if track_id in self.last_count_time:
+            if now - self.last_count_time[track_id] < self.cooldown_seconds:
+                self.track_history[track_id] = current_pos
+                return None
+
         if track_id not in self.track_history:
             self.track_history[track_id] = current_pos
             return None
 
         prev_pos = self.track_history[track_id]
-
-        # Ignorar se o objeto não se moveu
         if prev_pos == current_pos:
             return None
 
         direction = None
-
-        # Verificar interseção com cada segmento
         for (seg_start, seg_end), normal in zip(self.segments, self.normals):
             if self._segments_intersect(seg_start, seg_end, prev_pos, current_pos):
                 trajectory_vec = np.array([current_pos[0] - prev_pos[0], current_pos[1] - prev_pos[1]])
                 dot = np.dot(trajectory_vec, normal)
-
-                # Determinar direção com base no produto escalar
                 direction = DIRECTION_IN if dot > 0 else DIRECTION_OUT
 
-                # Atualizar histórico e sair do loop para evitar múltiplas atualizações
-                self.track_history[track_id] = current_pos
+                self.last_count_time[track_id] = now  # registra o último tempo de contagem
                 break
 
-        # Atualizar histórico da posição atual
         self.track_history[track_id] = current_pos
         return direction
 
