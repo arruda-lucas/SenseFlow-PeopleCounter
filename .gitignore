@@ -8,3 +8,4 @@ yolov5mu.pt
 teste.py
 descobrir_coords.py
 firebase-key.json
+people_count.db
