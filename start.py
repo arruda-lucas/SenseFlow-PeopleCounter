@@ -2,6 +2,11 @@ import os
 import sys
 from multiprocessing import Process
 from pathlib import Path
+import json
+
+config = json.load(open("config/config.json"))
+config_source_1 = config['source_1']
+config_source_2 = config['source_2']
 
 # Configura caminhos absolutos
 project_root = Path(__file__).parent
@@ -17,7 +22,7 @@ def run_fastapi():
 def run_main():
     """Executa o main.py de visão computacional"""
     from main import main
-    main()
+    main(video_source=config_source_1['local'], polyline_segments=config_source_1)
 
 if __name__ == "__main__":
     # Configura o ambiente

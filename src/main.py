@@ -4,13 +4,14 @@ from utils.utils import convert_detections
 from utils.processing import PolylineCounter, PeopleCounter, PolylineConfig
 from utils.annotate import draw_ui, annotate_bbox
 from src.utils.buffer_manager import buffer_manager
+from typing import List, Tuple
 import atexit
 import numpy as np
 import cv2
 import json
 
 
-def main():
+def main(video_source:str = None, polyline_segments:List[Tuple[Tuple[int, int], Tuple[int, int]]] = None):
     config = json.load(open("config/config.json"))
     polyline_segments = PolylineConfig.load_from_config(config)
     roi_points = config.get("roi", [])
@@ -18,7 +19,7 @@ def main():
     detection_interval = 3
     frame_counter = 0
     
-    cap = cv2.VideoCapture(config["local"])
+    cap = cv2.VideoCapture(video_source)
     model = Yolov5m()
     tracker = DeepSort(max_age=5)
     polyline_counter = PolylineCounter(polyline_segments, right=False)
