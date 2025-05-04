@@ -1,20 +1,22 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import sqlite3
 from datetime import datetime, timedelta
 import time
 import asyncio
+import json
 
 app = FastAPI()
 frontend_dir = Path(__file__).parent.parent / "frontend"
 
 # Variáveis de cache
 cache = {
-    "current_count": {"value": 0, "timestamp": 0},
-    "today_hourly": {"value": [], "timestamp": 0},
-    "last_hour": {"value": [], "timestamp": 0},
-    "heatmap_data": {"value": [], "timestamp": 0}
+    "current_count": {"value": 0, "timestamp": datetime.min},  # Usando datetime mínimo inicial
+    "today_hourly": {"value": [], "timestamp": datetime.min},
+    "last_hour": {"value": [], "timestamp": datetime.min},
+    "heatmap_data": {"value": [], "timestamp": datetime.min}
 }
 CACHE_DURATION = 5  # segundos
 
@@ -31,8 +33,8 @@ def get_db():
 
 def refresh_cache(key: str):
     """Atualiza o cache para uma chave específica se necessário"""
-    now = time.time()
-    if now - cache[key]["timestamp"] > CACHE_DURATION:
+    now = datetime.now()
+    if (now - cache[key]["timestamp"]).total_seconds() > CACHE_DURATION:
         conn = get_db()
         try:
             if key == "current_count":
@@ -126,25 +128,18 @@ async def message_stream():
         while True:
             refresh_cache("current_count")
             current_count = cache["current_count"]["value"]
-            
+
             # Verifica se houve mudança na contagem
             if current_count != last_count:
                 last_count = current_count
-                yield {
-                    "current_count": current_count,
-                    "charts_updated": True  # Indica que os gráficos devem ser atualizados
-                }
-                # Atualiza os dados dos gráficos no cache
+                yield f"data: {json.dumps({'current_count': current_count, 'charts_updated': True})}\n\n"
                 refresh_cache("today_hourly")
                 refresh_cache("last_hour")
             else:
-                yield {
-                    "current_count": current_count,
-                    "charts_updated": False
-                }
-            
-            await asyncio.sleep(1)  # Verifica a cada segundo
+                yield f"data: {json.dumps({'current_count': current_count, 'charts_updated': False})}\n\n"
 
-    return Response(event_generator(), media_type="text/event-stream")
+            await asyncio.sleep(1)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

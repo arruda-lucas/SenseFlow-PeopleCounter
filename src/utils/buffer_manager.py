@@ -1,7 +1,7 @@
 import time
 from threading import Thread, Event
 from datetime import datetime
-from site.backend.database import get_db # type: ignore
+from src.site.backend.database import get_db
 from typing import List, Tuple
 
 class BufferManager:

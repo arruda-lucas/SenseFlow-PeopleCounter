@@ -18,9 +18,9 @@ def main():
     detection_interval = 3
     frame_counter = 0
     
-    cap = cv2.VideoCapture(config["video_path"])
+    cap = cv2.VideoCapture(config["local"])
     model = Yolov5m()
-    tracker = DeepSort(max_age=30)
+    tracker = DeepSort(max_age=5)
     polyline_counter = PolylineCounter(polyline_segments, right=False)
     people_counter = PeopleCounter()
 
@@ -44,9 +44,6 @@ def main():
                     detections = convert_detections(model.detect(frame))
                 
                 tracks = tracker.update_tracks(detections, frame=frame)
-            else:
-                # Atualiza tracks sem nova detecção
-                tracks = tracker.predict()
 
             # Filtra apenas tracks confirmados
             confirmed_tracks = [t for t in tracks if t.is_confirmed()]

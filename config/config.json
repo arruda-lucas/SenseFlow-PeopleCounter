@@ -1,6 +1,6 @@
 {
     "url": "rtsp://100.122.8.114:8554/mystream",
-    "local": "data\\videos_teste\\CentroDeEventos-Meio.mp4",
+    "local": "data\\CentroDeEventos-Meio.mp4",
     "polyline": [
         {
             "start": [

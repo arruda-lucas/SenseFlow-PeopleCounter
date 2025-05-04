@@ -53,20 +53,33 @@ class PolylineCounter:
         Returns:
             "in" se entrou, "out" se saiu, None caso contrário
         """
+        # Se o track_id não está no histórico, inicializa e retorna None
         if track_id not in self.track_history:
             self.track_history[track_id] = current_pos
             return None
 
         prev_pos = self.track_history[track_id]
+
+        # Ignorar se o objeto não se moveu
+        if prev_pos == current_pos:
+            return None
+
         direction = None
-        
+
+        # Verificar interseção com cada segmento
         for (seg_start, seg_end), normal in zip(self.segments, self.normals):
             if self._segments_intersect(seg_start, seg_end, prev_pos, current_pos):
-                trajectory_vec = np.array([current_pos[0]-prev_pos[0], current_pos[1]-prev_pos[1]])
+                trajectory_vec = np.array([current_pos[0] - prev_pos[0], current_pos[1] - prev_pos[1]])
                 dot = np.dot(trajectory_vec, normal)
+
+                # Determinar direção com base no produto escalar
                 direction = DIRECTION_IN if dot > 0 else DIRECTION_OUT
+
+                # Atualizar histórico e sair do loop para evitar múltiplas atualizações
+                self.track_history[track_id] = current_pos
                 break
 
+        # Atualizar histórico da posição atual
         self.track_history[track_id] = current_pos
         return direction
 
